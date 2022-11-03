@@ -1,27 +1,157 @@
-# NgWyy
+# NG-WYY
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 14.2.8.
+> 使用Angular14搭建的网易云web端。
 
-## Development server
+## 一、模块化设计
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+------
 
-## Code scaffolding
+1. `CoreModule`包含核心模块，`ShareModule`包含共享的UI、基础等模块。
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+2. `CoreModule`添加以下代码，防止其他Module引入。
 
-## Build
+   ```typescript
+   export class CoreModule {
+     constructor(@SkipSelf() @Optional() parentModule: CoreModule) {
+       if (parentModule) {
+         throw new Error('CoreModule can only be imported by AppModule.')
+       }
+     }
+   }
+   ```
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
 
-## Running unit tests
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## 二、页面布局与服务类
 
-## Running end-to-end tests
+------
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+### 2.1 页面布局
 
-## Further help
+1. 使用`nz-layout`进行布局。
+2. 将`header.wrap`分为左右部分进行处理
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+### 2.2 服务类
+
+1. 对隶属于`services.module`的服务类，设置`providedIn: ServicesModule`
+
+2. 公共的字符常量可以设置为`InjectionToken`，并在module中声明并导出。
+
+   ```typescript
+   export const API_CONFIG = new InjectionToken('ApiConfigToken');
+   
+   @NgModule({
+     declarations: [],
+     imports: [],
+     providers: [
+       {
+         provide: API_CONFIG, useValue: 'http://localhost:3000/'
+       }
+     ]
+   })
+   export class ServicesModule {
+   }
+   ```
+
+3. 其他类使用2中字符常量时，可将其进行注入。
+
+   ```typescript
+   constructor(@Inject(API_CONFIG) private uri: string) { }
+   ```
+
+4. ```typescript
+   this.http.get<BannerList>(this.uri + 'banner')
+   ```
+
+
+
+## 三、走马灯——父子组件通信、模板、变更检测
+
+------
+
+### 3.1 父子组件通信
+
+1. `@Input()`作为子组件的属性，即使用**[ ]**
+
+2. `@Output() new EventEmitter<T>()`作为子组件的方法，即使用**( )**
+
+3. 示例：
+
+   .[^WyCarousel]
+
+   ```typescript
+   @Input() activeIndex = 0;
+   @Output() changeSlide = new EventEmitter<'pre' | 'next'>();
+   ```
+
+   .[^home]
+
+   ```typescript
+   <app-wy-carousel #wyCarousel 
+   	[activeIndex]="carouselActiveIndex" 
+   	(changeSlide)="onChangeSlide($event)"
+   >
+   ```
+
+### 3.2 模板
+
+1. 修改走马灯Dot渲染模板，需要传入`TemplateRef<{ $implicit: number }>`
+
+   .[^WyCarousel]
+
+   ```typescript
+   <ng-template #dot let-number>
+         <span class="dot" [class.active]="activeIndex === number"></span>
+   </ng-template>
+   
+   @ViewChild('dot', {static: true}) dotRef!: TemplateRef<any>;
+   ```
+
+   .[^home]
+
+   ```html
+   <nz-carousel
+         nzAutoPlay
+         nzEffect="fade"
+         [nzDotRender]="wyCarousel.dotRef"
+         (nzBeforeChange)="onBeforeChange($event)"
+   >
+   ```
+
+### 3.3 变更检测
+
+1. 由于`wy-carousel`仅在`@Input`发生变化时需要检测数据更新，故可以修改该组件的变更检测策略
+
+   ```typescript
+   @Component({
+     selector: 'app-wy-carousel',
+     templateUrl: './wy-carousel.component.html',
+     styleUrls: ['./wy-carousel.component.less'],
+     changeDetection: ChangeDetectionStrategy.OnPush
+   })
+   ```
+
+2. 官方示例：下面的例子为组件设置了 `OnPush` 变更检测策略（`CheckOnce` 而不是默认的 `CheckAlways`），然后每隔一段时间强制进行第二轮检测。
+
+   ``` typescript
+   @Component({
+     selector: 'app-root',
+     template: `Number of ticks: {{numberOfTicks}}`,
+     changeDetection: ChangeDetectionStrategy.OnPush,
+   })
+   
+   class AppComponent {
+     numberOfTicks = 0;
+   
+     constructor(private ref: ChangeDetectorRef) {
+       setInterval(() => {
+         this.numberOfTicks++;
+         // require view to be updated
+         this.ref.markForCheck();
+       }, 1000);
+     }
+   }
+   ```
+
+   
+
