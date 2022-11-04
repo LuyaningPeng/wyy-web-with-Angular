@@ -77,14 +77,14 @@
 
 3. 示例：
 
-   .[^WyCarousel]
+   `WyCarousel`
 
    ```typescript
    @Input() activeIndex = 0;
    @Output() changeSlide = new EventEmitter<'pre' | 'next'>();
    ```
 
-   .[^home]
+   `homel`
 
    ```typescript
    <app-wy-carousel #wyCarousel 
@@ -97,7 +97,7 @@
 
 1. 修改走马灯Dot渲染模板，需要传入`TemplateRef<{ $implicit: number }>`
 
-   .[^WyCarousel]
+   `WyCarousel`
 
    ```typescript
    <ng-template #dot let-number>
@@ -107,7 +107,7 @@
    @ViewChild('dot', {static: true}) dotRef!: TemplateRef<any>;
    ```
 
-   .[^home]
+   `homel`
 
    ```html
    <nz-carousel
@@ -151,6 +151,60 @@
        }, 1000);
      }
    }
+   ```
+
+
+
+
+## 四、首页——管道、Resolver、获取路由数据
+
+------
+
+### 4.1 管道
+
+1. 创建管道`ng g pipe <pipe-name>`，实现继承方法`PipeTransform.transform`
+
+2. 使用时，直接使用其名称
+
+   ```typescript
+   @Pipe({
+     name: 'playCount'
+   })
+   ```
+
+### 4.2 Resolver与获取路由数据
+
+1. 防止数据未加载导致页面显示错误。Resolver可以在导航期间解析数据，提供给其他组件使用。路由器会在最终激活路由之前等待数据被解析。
+
+   ```typescript
+   interface Resolve<T> {
+     resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<T> | Promise<T> | T
+   }
+   ```
+
+2. 为防止1中情况出现，可以在Resolver中请求数据，然后通过`resolve`方法返回。
+
+   ```typescript
+   const routes: Routes = [
+     {
+       path: 'home', component: HomeComponent, data: {title: '发现'}, 
+       resolve: {homeData: HomeResolver}
+     }
+   ];
+   ```
+
+3. 使用`ActivatedRoute.data`获取路由数据，为方便获取数据，可使用es6的解构语法
+
+   ```typescript
+   this.activatedRoute.data.pipe(
+         map(({homeData, title}) => homeData)
+       ).subscribe((res: HomeDataType) => {
+         const [banners, hotTags, songSheetList, singers] = res;
+         this.banners = banners;
+         this.hotTags = hotTags;
+         this.songSheetList = songSheetList;
+         this.singers = singers;
+       })
    ```
 
    

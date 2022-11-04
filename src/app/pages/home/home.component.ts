@@ -1,8 +1,9 @@
 import {Component, OnInit, ViewChild} from '@angular/core';
-import {HomeService} from "../../services/home.service";
-import {Observable} from "rxjs";
-import {Banner} from "../../services/data-types/common.types";
+import {Banner, HotTag, Singer, SongSheet} from "../../services/data-types/common.types";
 import {NzCarouselComponent} from "ng-zorro-antd/carousel";
+import {ActivatedRoute} from "@angular/router";
+import {map} from "rxjs";
+import {HomeDataType} from "./home.resolver";
 
 @Component({
   selector: 'app-home',
@@ -13,22 +14,32 @@ export class HomeComponent implements OnInit {
 
   carouselActiveIndex = 0;
   banners!: Banner[];
+  hotTags!: HotTag[];
+  songSheetList!: SongSheet[];
+  singers!: Singer[];
 
   @ViewChild(NzCarouselComponent, {static: true}) private nzCarousel!: NzCarouselComponent;
 
-  constructor(private homeService: HomeService) { }
+  constructor(private activatedRoute: ActivatedRoute) {
+  }
 
   ngOnInit(): void {
-    this.homeService.getBanners().subscribe(banners => {
+    this.activatedRoute.data.pipe(
+      map(({homeData, title}) => homeData)
+    ).subscribe((res: HomeDataType) => {
+      const [banners, hotTags, songSheetList, singers] = res;
       this.banners = banners;
+      this.hotTags = hotTags;
+      this.songSheetList = songSheetList;
+      this.singers = singers;
     })
   }
 
-  onBeforeChange(e: {from: number; to: number}){
+  onBeforeChange(e: { from: number; to: number }) {
     this.carouselActiveIndex = e.to;
   }
 
-  onChangeSlide(type: 'pre' | 'next'){
+  onChangeSlide(type: 'pre' | 'next') {
     if (type === 'pre')
       this.nzCarousel.pre();
     else
