@@ -4,6 +4,7 @@ import {NzCarouselComponent} from "ng-zorro-antd/carousel";
 import {ActivatedRoute} from "@angular/router";
 import {map} from "rxjs";
 import {HomeDataType} from "./home.resolver";
+import {SheetService} from "../../services/sheet.service";
 
 @Component({
   selector: 'app-home',
@@ -20,7 +21,8 @@ export class HomeComponent implements OnInit {
 
   @ViewChild(NzCarouselComponent, {static: true}) private nzCarousel!: NzCarouselComponent;
 
-  constructor(private activatedRoute: ActivatedRoute) {
+  constructor(private activatedRoute: ActivatedRoute,
+              private sheetService: SheetService) {
   }
 
   ngOnInit(): void {
@@ -44,5 +46,11 @@ export class HomeComponent implements OnInit {
       this.nzCarousel.pre();
     else
       this.nzCarousel.next();
+  }
+
+  onPlaySheet(id: number){
+    this.sheetService.playSheet(id).subscribe(res => {
+      console.log(res)
+    })
   }
 }
